@@ -23,7 +23,18 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState } = React;
+        const { useState, useEffect } = React;
+
+        // === CONFIGURATION ===
+        // Replace this URL with your Google Sheets CSV export URL
+        const GOOGLE_SHEETS_CSV_URL = 'YOUR_GOOGLE_SHEETS_CSV_URL_HERE';
+        
+        // To get your CSV URL:
+        // 1. Create a Google Sheet with your recipes
+        // 2. Go to File > Share > Publish to web
+        // 3. Choose "Comma-separated values (.csv)" and click Publish
+        // 4. Copy the URL and paste it above
+        // ======================
 
         // Lucide Icons as SVG components
         const Search = () => (
@@ -96,49 +107,35 @@
             </svg>
         );
 
+        const RefreshCw = () => (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <polyline points="1 20 1 14 7 14"></polyline>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+        );
+
+        const Plus = () => (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+        );
+
         const App = () => {
             const [activeTab, setActiveTab] = useState('home');
-            const [favorites, setFavorites] = useState([]);
+            const [favorites, setFavorites] = useState(() => {
+                const saved = localStorage.getItem('favorites');
+                return saved ? JSON.parse(saved) : [];
+            });
             const [searchQuery, setSearchQuery] = useState('');
             const [selectedRecipe, setSelectedRecipe] = useState(null);
             const [selectedCategory, setSelectedCategory] = useState(null);
+            const [recipes, setRecipes] = useState([]);
+            const [loading, setLoading] = useState(true);
 
-            const categories = [
-                {
-                    id: 'vegetables',
-                    title: 'Sayur',
-                    subtitle: 'Aneka Sayuran',
-                    icon: '🥦',
-                    color: 'bg-green-100',
-                    textColor: 'text-green-600'
-                },
-                {
-                    id: 'meat',
-                    title: 'Dagian',
-                    subtitle: 'Dagin',
-                    icon: '🥩',
-                    color: 'bg-red-100',
-                    textColor: 'text-red-600'
-                },
-                {
-                    id: 'fruits',
-                    title: 'Buah-buahan',
-                    subtitle: 'Segar',
-                    icon: '🍎',
-                    color: 'bg-orange-100',
-                    textColor: 'text-orange-600'
-                },
-                {
-                    id: 'chicken',
-                    title: 'Ayam',
-                    subtitle: 'Masakan Ayam',
-                    icon: '🍗',
-                    color: 'bg-yellow-100',
-                    textColor: 'text-yellow-700'
-                }
-            ];
-
-            const recipes = [
+            // Default recipes (fallback)
+            const defaultRecipes = [
                 {
                     id: 1,
                     name: 'Nasi Goreng Senyum',
@@ -148,67 +145,12 @@
                     time: '25 menit',
                     servings: '2 porsi',
                     difficulty: 'Mudah',
-                    nutrition: {
-                        calories: 450,
-                        protein: '12g',
-                        carbs: '65g',
-                        fat: '15g'
-                    },
-                    ingredients: [
-                        '2 piring nasi putih',
-                        '2 butir telur',
-                        '3 siung bawang putih',
-                        '2 batang daun bawang',
-                        'Kecap manis secukupnya',
-                        'Garam dan merica',
-                        'Minyak goreng'
-                    ],
-                    steps: [
-                        'Panaskan minyak dalam wajan',
-                        'Tumis bawang putih hingga harum',
-                        'Masukkan telur, orak-arik hingga matang',
-                        'Tambahkan nasi putih, aduk rata',
-                        'Beri kecap manis, garam, dan merica',
-                        'Masak sambil diaduk hingga bumbu merata',
-                        'Taburi daun bawang, sajikan hangat'
-                    ]
+                    nutrition: { calories: 450, protein: '12g', carbs: '65g', fat: '15g' },
+                    ingredients: ['2 piring nasi putih', '2 butir telur', '3 siung bawang putih', '2 batang daun bawang', 'Kecap manis secukupnya', 'Garam dan merica', 'Minyak goreng'],
+                    steps: ['Panaskan minyak dalam wajan', 'Tumis bawang putih hingga harum', 'Masukkan telur, orak-arik hingga matang', 'Tambahkan nasi putih, aduk rata', 'Beri kecap manis, garam, dan merica', 'Masak sambil diaduk hingga bumbu merata', 'Taburi daun bawang, sajikan hangat']
                 },
                 {
                     id: 2,
-                    name: 'Sup Krim Jagung Ceria',
-                    image: '🍲',
-                    color: 'bg-red-50',
-                    category: 'vegetables',
-                    time: '30 menit',
-                    servings: '4 porsi',
-                    difficulty: 'Mudah',
-                    nutrition: {
-                        calories: 220,
-                        protein: '8g',
-                        carbs: '35g',
-                        fat: '6g'
-                    },
-                    ingredients: [
-                        '2 bonggol jagung manis',
-                        '500ml susu cair',
-                        '2 sdm mentega',
-                        '1 bawang bombay',
-                        'Garam dan merica',
-                        'Daun bawang untuk taburan',
-                        'Keju parut (opsional)'
-                    ],
-                    steps: [
-                        'Pipil jagung dari bonggolnya',
-                        'Tumis bawang bombay dengan mentega hingga harum',
-                        'Masukkan jagung, masak 5 menit',
-                        'Tuang susu cair, didihkan',
-                        'Blender setengah adonan hingga halus',
-                        'Campur kembali, tambah garam dan merica',
-                        'Sajikan dengan taburan daun bawang dan keju'
-                    ]
-                },
-                {
-                    id: 3,
                     name: 'Ayam Geprek Gembira',
                     image: '🍛',
                     color: 'bg-orange-50',
@@ -216,133 +158,88 @@
                     time: '40 menit',
                     servings: '2 porsi',
                     difficulty: 'Sedang',
-                    nutrition: {
-                        calories: 520,
-                        protein: '35g',
-                        carbs: '25g',
-                        fat: '28g'
-                    },
-                    ingredients: [
-                        '2 potong dada ayam',
-                        '10 cabai rawit',
-                        '5 siung bawang putih',
-                        'Tepung bumbu serbaguna',
-                        'Garam dan gula',
-                        'Minyak untuk menggoreng',
-                        'Daun jeruk'
-                    ],
-                    steps: [
-                        'Marinasi ayam dengan garam, diamkan 15 menit',
-                        'Balur ayam dengan tepung bumbu',
-                        'Goreng ayam hingga kecoklatan dan matang',
-                        'Ulek cabai, bawang putih, garam, dan gula',
-                        'Geprek ayam goreng dengan sambal',
-                        'Tambahkan daun jeruk, aduk rata',
-                        'Sajikan dengan nasi hangat'
-                    ]
-                },
-                {
-                    id: 4,
-                    name: 'Sate Ayam Manis',
-                    image: '🍢',
-                    color: 'bg-yellow-50',
-                    category: 'chicken',
-                    time: '35 menit',
-                    servings: '3 porsi',
-                    difficulty: 'Mudah',
-                    nutrition: {
-                        calories: 380,
-                        protein: '32g',
-                        carbs: '18g',
-                        fat: '20g'
-                    },
-                    ingredients: [
-                        '500g daging ayam fillet',
-                        '4 sdm kecap manis',
-                        '2 sdm minyak wijen',
-                        '3 siung bawang putih',
-                        'Tusuk sate',
-                        'Margarin untuk olesan',
-                        'Jeruk nipis'
-                    ],
-                    steps: [
-                        'Potong ayam dadu, marinasi dengan bumbu',
-                        'Diamkan dalam kulkas 30 menit',
-                        'Tusuk ayam dengan tusuk sate',
-                        'Panaskan grill atau bara api',
-                        'Bakar sate sambil dioles margarin',
-                        'Balik-balik hingga matang merata',
-                        'Sajikan dengan kecap dan jeruk nipis'
-                    ]
-                },
-                {
-                    id: 5,
-                    name: 'Capcay Sayur Segar',
-                    image: '🥗',
-                    color: 'bg-pink-50',
-                    category: 'vegetables',
-                    time: '20 menit',
-                    servings: '3 porsi',
-                    difficulty: 'Mudah',
-                    nutrition: {
-                        calories: 180,
-                        protein: '6g',
-                        carbs: '28g',
-                        fat: '5g'
-                    },
-                    ingredients: [
-                        'Wortel 1 buah',
-                        'Brokoli 100g',
-                        'Kembang kol 100g',
-                        'Buncis 50g',
-                        'Jagung muda 3 buah',
-                        'Bawang putih 3 siung',
-                        'Saus tiram 2 sdm'
-                    ],
-                    steps: [
-                        'Potong semua sayuran sesuai selera',
-                        'Rebus sayuran sebentar hingga setengah matang',
-                        'Tumis bawang putih hingga harum',
-                        'Masukkan semua sayuran',
-                        'Tambahkan saus tiram, garam, gula',
-                        'Aduk cepat dengan api besar',
-                        'Sajikan selagi hangat'
-                    ]
-                },
-                {
-                    id: 6,
-                    name: 'Sop Buah Segar',
-                    image: '🍨',
-                    color: 'bg-purple-50',
-                    category: 'fruits',
-                    time: '15 menit',
-                    servings: '4 porsi',
-                    difficulty: 'Sangat Mudah',
-                    nutrition: {
-                        calories: 150,
-                        protein: '3g',
-                        carbs: '32g',
-                        fat: '2g'
-                    },
-                    ingredients: [
-                        'Melon 200g',
-                        'Nanas 150g',
-                        'Apel 1 buah',
-                        'Anggur secukupnya',
-                        'Sirup cocopandan',
-                        'Susu kental manis',
-                        'Es batu'
-                    ],
-                    steps: [
-                        'Potong dadu semua buah',
-                        'Masukkan buah dalam mangkuk besar',
-                        'Tambahkan sirup cocopandan',
-                        'Tuang susu kental manis sesuai selera',
-                        'Aduk rata semua bahan',
-                        'Tambahkan es batu',
-                        'Sajikan segera selagi dingin'
-                    ]
+                    nutrition: { calories: 520, protein: '35g', carbs: '25g', fat: '28g' },
+                    ingredients: ['2 potong dada ayam', '10 cabai rawit', '5 siung bawang putih', 'Tepung bumbu serbaguna', 'Garam dan gula', 'Minyak untuk menggoreng', 'Daun jeruk'],
+                    steps: ['Marinasi ayam dengan garam, diamkan 15 menit', 'Balur ayam dengan tepung bumbu', 'Goreng ayam hingga kecoklatan dan matang', 'Ulek cabai, bawang putih, garam, dan gula', 'Geprek ayam goreng dengan sambal', 'Tambahkan daun jeruk, aduk rata', 'Sajikan dengan nasi hangat']
                 }
+            ];
+
+            // Load recipes from Google Sheets
+            useEffect(() => {
+                loadRecipes();
+            }, []);
+
+            // Save favorites to localStorage
+            useEffect(() => {
+                localStorage.setItem('favorites', JSON.stringify(favorites));
+            }, [favorites]);
+
+            const parseCSV = (text) => {
+                const lines = text.split('\n').filter(line => line.trim());
+                const headers = lines[0].split(',').map(h => h.trim());
+                
+                const data = [];
+                for (let i = 1; i < lines.length; i++) {
+                    const values = lines[i].split(',');
+                    if (values.length >= headers.length) {
+                        const recipe = {
+                            id: i,
+                            name: values[0]?.trim() || '',
+                            image: values[1]?.trim() || '🍽️',
+                            category: values[2]?.trim() || 'other',
+                            time: values[3]?.trim() || '30 menit',
+                            servings: values[4]?.trim() || '2 porsi',
+                            difficulty: values[5]?.trim() || 'Sedang',
+                            nutrition: {
+                                calories: parseInt(values[6]) || 300,
+                                protein: values[7]?.trim() || '10g',
+                                carbs: values[8]?.trim() || '30g',
+                                fat: values[9]?.trim() || '10g'
+                            },
+                            ingredients: values[10]?.split('|').map(i => i.trim()) || [],
+                            steps: values[11]?.split('|').map(s => s.trim()) || [],
+                            color: getCategoryColor(values[2]?.trim())
+                        };
+                        data.push(recipe);
+                    }
+                }
+                return data;
+            };
+
+            const getCategoryColor = (category) => {
+                const colors = {
+                    'vegetables': 'bg-green-50',
+                    'chicken': 'bg-orange-50',
+                    'meat': 'bg-red-50',
+                    'fruits': 'bg-purple-50',
+                    'other': 'bg-yellow-50'
+                };
+                return colors[category] || 'bg-gray-50';
+            };
+
+            const loadRecipes = async () => {
+                setLoading(true);
+                try {
+                    if (GOOGLE_SHEETS_CSV_URL && GOOGLE_SHEETS_CSV_URL !== 'YOUR_GOOGLE_SHEETS_CSV_URL_HERE') {
+                        const response = await fetch(GOOGLE_SHEETS_CSV_URL);
+                        const text = await response.text();
+                        const parsedRecipes = parseCSV(text);
+                        setRecipes(parsedRecipes.length > 0 ? parsedRecipes : defaultRecipes);
+                    } else {
+                        setRecipes(defaultRecipes);
+                    }
+                } catch (error) {
+                    console.error('Error loading recipes:', error);
+                    setRecipes(defaultRecipes);
+                }
+                setLoading(false);
+            };
+
+            const categories = [
+                { id: 'vegetables', title: 'Sayur', subtitle: 'Aneka Sayuran', icon: '🥦', color: 'bg-green-100', textColor: 'text-green-600' },
+                { id: 'meat', title: 'Dagian', subtitle: 'Dagin', icon: '🥩', color: 'bg-red-100', textColor: 'text-red-600' },
+                { id: 'fruits', title: 'Buah-buahan', subtitle: 'Segar', icon: '🍎', color: 'bg-orange-100', textColor: 'text-orange-600' },
+                { id: 'chicken', title: 'Ayam', subtitle: 'Masakan Ayam', icon: '🍗', color: 'bg-yellow-100', textColor: 'text-yellow-700' }
             ];
 
             const toggleFavorite = (recipeId) => {
@@ -354,8 +251,8 @@
             };
 
             const filteredRecipes = recipes.filter(recipe => {
-                const matchesSearch = recipe.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                                    recipe.ingredients.some(ing => ing.toLowerCase().includes(searchQuery.toLowerCase()));
+                const matchesSearch = recipe.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                    recipe.ingredients?.some(ing => ing.toLowerCase().includes(searchQuery.toLowerCase()));
                 const matchesCategory = !selectedCategory || recipe.category === selectedCategory;
                 return matchesSearch && matchesCategory;
             });
@@ -371,25 +268,16 @@
                     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
                         <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
                             <div className={`${recipe.color} p-6 rounded-t-3xl relative`}>
-                                <button
-                                    onClick={() => setSelectedRecipe(null)}
-                                    className="absolute top-4 right-4 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100"
-                                >
+                                <button onClick={() => setSelectedRecipe(null)} className="absolute top-4 right-4 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100">
                                     <X />
                                 </button>
                                 <div className="text-center">
                                     <div className="text-8xl mb-4">{recipe.image}</div>
                                     <h2 className="text-3xl font-bold text-gray-800 mb-2">{recipe.name}</h2>
                                     <div className="flex justify-center gap-4 text-sm text-gray-600">
-                                        <span className="flex items-center gap-1">
-                                            <Clock /> {recipe.time}
-                                        </span>
-                                        <span className="flex items-center gap-1">
-                                            <Users /> {recipe.servings}
-                                        </span>
-                                        <span className="bg-white px-3 py-1 rounded-full">
-                                            {recipe.difficulty}
-                                        </span>
+                                        <span className="flex items-center gap-1"><Clock /> {recipe.time}</span>
+                                        <span className="flex items-center gap-1"><Users /> {recipe.servings}</span>
+                                        <span className="bg-white px-3 py-1 rounded-full">{recipe.difficulty}</span>
                                     </div>
                                 </div>
                             </div>
@@ -397,8 +285,7 @@
                             <div className="p-6">
                                 <div className="mb-6">
                                     <h3 className="text-xl font-bold text-gray-800 mb-3 flex items-center gap-2">
-                                        <Flame />
-                                        Informasi Nutrisi
+                                        <Flame /> Informasi Nutrisi
                                     </h3>
                                     <div className="grid grid-cols-4 gap-3">
                                         <div className="bg-orange-50 rounded-xl p-3 text-center">
@@ -424,7 +311,7 @@
                                     <h3 className="text-xl font-bold text-gray-800 mb-3">🛒 Bahan-Bahan</h3>
                                     <div className="bg-gray-50 rounded-xl p-4">
                                         <ul className="space-y-2">
-                                            {recipe.ingredients.map((ingredient, index) => (
+                                            {recipe.ingredients?.map((ingredient, index) => (
                                                 <li key={index} className="flex items-start gap-2">
                                                     <span className="text-green-500 mt-1">✓</span>
                                                     <span className="text-gray-700">{ingredient}</span>
@@ -437,7 +324,7 @@
                                 <div className="mb-6">
                                     <h3 className="text-xl font-bold text-gray-800 mb-3">👨‍🍳 Cara Membuat</h3>
                                     <div className="space-y-3">
-                                        {recipe.steps.map((step, index) => (
+                                        {recipe.steps?.map((step, index) => (
                                             <div key={index} className="flex gap-3">
                                                 <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
                                                     {index + 1}
@@ -448,14 +335,7 @@
                                     </div>
                                 </div>
 
-                                <button
-                                    onClick={() => toggleFavorite(recipe.id)}
-                                    className={`w-full py-4 rounded-xl font-bold text-lg transition ${
-                                        favorites.includes(recipe.id)
-                                            ? 'bg-red-500 text-white'
-                                            : 'bg-gradient-to-r from-amber-400 to-orange-500 text-white'
-                                    }`}
-                                >
+                                <button onClick={() => toggleFavorite(recipe.id)} className={`w-full py-4 rounded-xl font-bold text-lg transition ${favorites.includes(recipe.id) ? 'bg-red-500 text-white' : 'bg-gradient-to-r from-amber-400 to-orange-500 text-white'}`}>
                                     {favorites.includes(recipe.id) ? '❤️ Hapus dari Favorit' : '❤️ Tambah ke Favorit'}
                                 </button>
                             </div>
@@ -464,29 +344,35 @@
                 );
             };
 
+            if (loading) {
+                return (
+                    <div className="min-h-screen bg-gradient-to-b from-amber-50 to-orange-50 flex items-center justify-center">
+                        <div className="text-center">
+                            <div className="text-6xl mb-4 animate-bounce">🍳</div>
+                            <p className="text-xl text-gray-600">Memuat resep...</p>
+                        </div>
+                    </div>
+                );
+            }
+
             return (
                 <div className="min-h-screen bg-gradient-to-b from-amber-50 to-orange-50 pb-20">
                     <div className="bg-white shadow-sm sticky top-0 z-10">
                         <div className="max-w-4xl mx-auto px-6 py-6">
-                            <h1 className="text-4xl font-bold text-center mb-6" style={{
-                                color: '#8B4513',
-                                textShadow: '2px 2px 4px rgba(0,0,0,0.1)',
-                                fontFamily: 'system-ui, -apple-system, sans-serif'
-                            }}>
-                                DapurBahagia
-                            </h1>
+                            <div className="flex items-center justify-between mb-6">
+                                <h1 className="text-4xl font-bold" style={{ color: '#8B4513', textShadow: '2px 2px 4px rgba(0,0,0,0.1)' }}>
+                                    DapurBahagia
+                                </h1>
+                                <button onClick={loadRecipes} className="bg-amber-500 text-white p-2 rounded-full hover:bg-amber-600 transition" title="Muat Ulang Resep">
+                                    <RefreshCw />
+                                </button>
+                            </div>
                             
                             <div className="relative">
                                 <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-amber-700">
                                     <Search />
                                 </div>
-                                <input
-                                    type="text"
-                                    placeholder="Cari Resep Seru..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full pl-12 pr-4 py-3 rounded-full bg-amber-50 border-2 border-amber-100 focus:outline-none focus:border-amber-300 text-gray-700 placeholder-amber-600"
-                                />
+                                <input type="text" placeholder="Cari Resep Seru..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-12 pr-4 py-3 rounded-full bg-amber-50 border-2 border-amber-100 focus:outline-none focus:border-amber-300 text-gray-700 placeholder-amber-600" />
                             </div>
                         </div>
                     </div>
@@ -496,86 +382,48 @@
                             <>
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                                     {categories.map((category) => (
-                                        <div
-                                            key={category.id}
-                                            onClick={() => {
-                                                setSelectedCategory(selectedCategory === category.id ? null : category.id);
-                                                setActiveTab('recipes');
-                                            }}
-                                            className={`${category.color} rounded-3xl p-6 text-center cursor-pointer transform transition hover:scale-105 shadow-md ${
-                                                selectedCategory === category.id ? 'ring-4 ring-amber-400' : ''
-                                            }`}
-                                        >
+                                        <div key={category.id} onClick={() => { setSelectedCategory(selectedCategory === category.id ? null : category.id); setActiveTab('recipes'); }} className={`${category.color} rounded-3xl p-6 text-center cursor-pointer transform transition hover:scale-105 shadow-md ${selectedCategory === category.id ? 'ring-4 ring-amber-400' : ''}`}>
                                             <div className="text-6xl mb-3">{category.icon}</div>
-                                            <h3 className={`font-bold text-lg ${category.textColor}`}>
-                                                {category.title}
-                                            </h3>
+                                            <h3 className={`font-bold text-lg ${category.textColor}`}>{category.title}</h3>
                                             <p className="text-sm text-gray-600">{category.subtitle}</p>
-                                            {selectedCategory === category.id && (
-                                                <div className="mt-2 text-xs bg-white rounded-full px-3 py-1 inline-block">
-                                                    ✓ Dipilih
-                                                </div>
-                                            )}
+                                            {selectedCategory === category.id && (<div className="mt-2 text-xs bg-white rounded-full px-3 py-1 inline-block">✓ Dipilih</div>)}
                                         </div>
                                     ))}
                                 </div>
-
-                                <h2 className="text-2xl font-bold text-gray-800 mb-4">
-                                    Resep Pilihan Hari Ini!
-                                </h2>
+                                <h2 className="text-2xl font-bold text-gray-800 mb-4">Resep Pilihan Hari Ini!</h2>
                             </>
                         )}
 
                         {activeTab === 'recipes' && (
                             <>
                                 <div className="flex items-center justify-between mb-4">
-                                    <h2 className="text-2xl font-bold text-gray-800">
-                                        {selectedCategory 
-                                            ? `Resep ${categories.find(c => c.id === selectedCategory)?.title}`
-                                            : 'Semua Resep'
-                                        }
-                                    </h2>
-                                    {selectedCategory && (
-                                        <button
-                                            onClick={() => setSelectedCategory(null)}
-                                            className="text-sm bg-amber-100 hover:bg-amber-200 text-amber-700 px-4 py-2 rounded-full transition"
-                                        >
-                                            Lihat Semua
-                                        </button>
-                                    )}
+                                    <h2 className="text-2xl font-bold text-gray-800">{selectedCategory ? `Resep ${categories.find(c => c.id === selectedCategory)?.title}` : 'Semua Resep'}</h2>
+                                    {selectedCategory && (<button onClick={() => setSelectedCategory(null)} className="text-sm bg-amber-100 hover:bg-amber-200 text-amber-700 px-4 py-2 rounded-full transition">Lihat Semua</button>)}
                                 </div>
-                                {searchQuery && (
-                                    <p className="text-sm text-gray-600 mb-4">
-                                        Hasil pencarian untuk "{searchQuery}" - {displayedRecipes.length} resep ditemukan
-                                    </p>
-                                )}
+                                {searchQuery && (<p className="text-sm text-gray-600 mb-4">Hasil pencarian untuk "{searchQuery}" - {displayedRecipes.length} resep ditemukan</p>)}
                             </>
                         )}
 
                         {activeTab === 'favorites' && (
                             <>
-                                <h2 className="text-2xl font-bold text-gray-800 mb-4">
-                                    Resep Favorit
-                                </h2>
-                                {favorites.length > 0 && (
-                                    <p className="text-sm text-gray-600 mb-4">
-                                        Kamu punya {favorites.length} resep favorit
-                                    </p>
-                                )}
+                                <h2 className="text-2xl font-bold text-gray-800 mb-4">Resep Favorit</h2>
+                                {favorites.length > 0 && (<p className="text-sm text-gray-600 mb-4">Kamu punya {favorites.length} resep favorit</p>)}
                             </>
                         )}
 
                         {activeTab === 'profile' && (
                             <div className="text-center py-12">
-                                <div className="w-24 h-24 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full mx-auto mb-4 flex items-center justify-center">
-                                    <User />
-                                </div>
+                                <div className="w-24 h-24 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full mx-auto mb-4 flex items-center justify-center"><User /></div>
                                 <h2 className="text-2xl font-bold text-gray-800 mb-2">Profile Saya</h2>
                                 <p className="text-gray-600">Selamat datang di DapurBahagia!</p>
                                 <div className="mt-8 space-y-3 max-w-xs mx-auto">
                                     <div className="bg-white rounded-lg p-4 shadow-sm">
-                                        <p className="text-gray-600">Total Resep Favorit</p>
-                                        <p className="text-3xl font-bold text-amber-600">{favorites.length}</p>
+                                        <p className="text-gray-600">Total Resep</p>
+                                        <p className="text-3xl font-bold text-amber-600">{recipes.length}</p>
+                                    </div>
+                                    <div className="bg-white rounded-lg p-4 shadow-sm">
+                                        <p className="text-gray-600">Resep Favorit</p>
+                                        <p className="text-3xl font-bold text-red-600">{favorites.length}</p>
                                     </div>
                                 </div>
                             </div>
@@ -584,31 +432,13 @@
                         {(activeTab === 'home' || activeTab === 'recipes' || activeTab === 'favorites') && (
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                                 {displayedRecipes.map((recipe) => (
-                                    <div
-                                        key={recipe.id}
-                                        className={`${recipe.color} rounded-2xl p-4 shadow-md transform transition hover:scale-105 cursor-pointer`}
-                                        onClick={() => setSelectedRecipe(recipe)}
-                                    >
-                                        <div className="aspect-square flex items-center justify-center mb-3 text-7xl">
-                                            {recipe.image}
-                                        </div>
-                                        <h3 className="font-semibold text-center text-gray-800 mb-2 text-sm">
-                                            {recipe.name}
-                                        </h3>
+                                    <div key={recipe.id} className={`${recipe.color} rounded-2xl p-4 shadow-md transform transition hover:scale-105 cursor-pointer`} onClick={() => setSelectedRecipe(recipe)}>
+                                        <div className="aspect-square flex items-center justify-center mb-3 text-7xl">{recipe.image}</div>
+                                        <h3 className="font-semibold text-center text-gray-800 mb-2 text-sm">{recipe.name}</h3>
                                         <div className="flex items-center justify-center gap-2 text-xs text-gray-600 mb-3">
-                                            <span className="flex items-center gap-1">
-                                                <Clock /> {recipe.time}
-                                            </span>
+                                            <span className="flex items-center gap-1"><Clock /> {recipe.time}</span>
                                         </div>
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setSelectedRecipe(recipe);
-                                            }}
-                                            className="w-full py-2 rounded-lg font-medium transition bg-white text-amber-600 border-2 border-amber-500 hover:bg-amber-500 hover:text-white"
-                                        >
-                                            Lihat Resep
-                                        </button>
+                                        <button onClick={(e) => { e.stopPropagation(); setSelectedRecipe(recipe); }} className="w-full py-2 rounded-lg font-medium transition bg-white text-amber-600 border-2 border-amber-500 hover:bg-amber-500 hover:text-white">Lihat Resep</button>
                                     </div>
                                 ))}
                             </div>
@@ -616,9 +446,7 @@
 
                         {displayedRecipes.length === 0 && activeTab === 'favorites' && (
                             <div className="text-center py-12 text-gray-500">
-                                <div className="w-16 h-16 mx-auto mb-4 opacity-50">
-                                    <Heart />
-                                </div>
+                                <div className="w-16 h-16 mx-auto mb-4 opacity-50"><Heart /></div>
                                 <p className="text-lg mb-2">Belum ada resep favorit</p>
                                 <p className="text-sm">Klik tombol "Lihat Resep" dan tambahkan ke favorit!</p>
                             </div>
@@ -626,35 +454,10 @@
 
                         {displayedRecipes.length === 0 && searchQuery && activeTab !== 'favorites' && (
                             <div className="text-center py-12 text-gray-500">
-                                <div className="w-16 h-16 mx-auto mb-4 opacity-50">
-                                    <Search />
-                                </div>
+                                <div className="w-16 h-16 mx-auto mb-4 opacity-50"><Search /></div>
                                 <p className="text-lg mb-2">Resep tidak ditemukan</p>
                                 <p className="text-sm mb-4">Coba kata kunci lain atau lihat semua resep</p>
-                                <button
-                                    onClick={() => {
-                                        setSearchQuery('');
-                                        setSelectedCategory(null);
-                                    }}
-                                    className="bg-amber-500 text-white px-6 py-2 rounded-full hover:bg-amber-600 transition"
-                                >
-                                    Hapus Pencarian
-                                </button>
-                            </div>
-                        )}
-
-                        {displayedRecipes.length === 0 && selectedCategory && !searchQuery && activeTab !== 'favorites' && (
-                            <div className="text-center py-12 text-gray-500">
-                                <div className="w-16 h-16 mx-auto mb-4 opacity-50">
-                                    <Book />
-                                </div>
-                                <p className="text-lg mb-2">Belum ada resep di kategori ini</p>
-                                <button
-                                    onClick={() => setSelectedCategory(null)}
-                                    className="bg-amber-500 text-white px-6 py-2 rounded-full hover:bg-amber-600 transition"
-                                >
-                                    Lihat Semua Kategori
-                                </button>
+                                <button onClick={() => { setSearchQuery(''); setSelectedCategory(null); }} className="bg-amber-500 text-white px-6 py-2 rounded-full hover:bg-amber-600 transition">Hapus Pencarian</button>
                             </div>
                         )}
                     </div>
@@ -662,52 +465,10 @@
                     <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg">
                         <div className="max-w-4xl mx-auto px-6 py-3">
                             <div className="flex justify-around items-center">
-                                <button
-                                    onClick={() => {
-                                        setActiveTab('home');
-                                        setSelectedCategory(null);
-                                        setSearchQuery('');
-                                    }}
-                                    className={`flex flex-col items-center space-y-1 ${
-                                        activeTab === 'home' ? 'text-green-600' : 'text-gray-400'
-                                    }`}
-                                >
-                                    <Home />
-                                    <span className="text-xs font-medium">Beranda</span>
-                                </button>
-                                
-                                <button
-                                    onClick={() => {
-                                        setActiveTab('recipes');
-                                        setSelectedCategory(null);
-                                    }}
-                                    className={`flex flex-col items-center space-y-1 ${
-                                        activeTab === 'recipes' ? 'text-blue-600' : 'text-gray-400'
-                                    }`}
-                                >
-                                    <Book />
-                                    <span className="text-xs font-medium">Resepku</span>
-                                </button>
-                                
-                                <button
-                                    onClick={() => setActiveTab('favorites')}
-                                    className={`flex flex-col items-center space-y-1 ${
-                                        activeTab === 'favorites' ? 'text-red-600' : 'text-gray-400'
-                                    }`}
-                                >
-                                    <Heart />
-                                    <span className="text-xs font-medium">Favorit</span>
-                                </button>
-                                
-                                <button
-                                    onClick={() => setActiveTab('profile')}
-                                    className={`flex flex-col items-center space-y-1 ${
-                                        activeTab === 'profile' ? 'text-purple-600' : 'text-gray-400'
-                                    }`}
-                                >
-                                    <ChefHat />
-                                    <span className="text-xs font-medium">Profil</span>
-                                </button>
+                                <button onClick={() => { setActiveTab('home'); setSelectedCategory(null); setSearchQuery(''); }} className={`flex flex-col items-center space-y-1 ${activeTab === 'home' ? 'text-green-600' : 'text-gray-400'}`}><Home /><span className="text-xs font-medium">Beranda</span></button>
+                                <button onClick={() => { setActiveTab('recipes'); setSelectedCategory(null); }} className={`flex flex-col items-center space-y-1 ${activeTab === 'recipes' ? 'text-blue-600' : 'text-gray-400'}`}><Book /><span className="text-xs font-medium">Resepku</span></button>
+                                <button onClick={() => setActiveTab('favorites')} className={`flex flex-col items-center space-y-1 ${activeTab === 'favorites' ? 'text-red-600' : 'text-gray-400'}`}><Heart /><span className="text-xs font-medium">Favorit</span></button>
+                                <button onClick={() => setActiveTab('profile')} className={`flex flex-col items-center space-y-1 ${activeTab === 'profile' ? 'text-purple-600' : 'text-gray-400'}`}><ChefHat /><span className="text-xs font-medium">Profil</span></button>
                             </div>
                         </div>
                     </div>
