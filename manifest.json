@@ -2,13 +2,11 @@
   "background_color": "#ffffff",
   "dir": "ltr",
   "display": "standalone",
-  "name": "DapurBahagia",
+  "name": "Dapur Bahagia",
   "orientation": "any",
   "scope": "/",
   "short_name": "MBG",
   "start_url": "/",
   "theme_color": "#ffffff",
-  "categories": [
-    "food"
-  ]
+  "id": "131"
 }
