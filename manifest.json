@@ -2,10 +2,13 @@
   "background_color": "#ffffff",
   "dir": "ltr",
   "display": "standalone",
-  "name": "copppppsfd.github",
+  "name": "DapurBahagia",
   "orientation": "any",
   "scope": "/",
-  "short_name": "copppppsfd.github",
+  "short_name": "MBG",
   "start_url": "/",
-  "theme_color": "#ffffff"
+  "theme_color": "#ffffff",
+  "categories": [
+    "food"
+  ]
 }
