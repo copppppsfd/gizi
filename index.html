@@ -214,11 +214,10 @@
 
   /* Info cards */
   .info-grid {
-   display: grid; 
-    grid-template-columns: 1fr 1fr; 
-    gap: 12px; 
-      justify-content: center;
-    margin-bottom: 16px;
+   display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12px, max-content));
+  justify-content: center;
+  grid-gap: 12px;
   }
 
   .info-card {
